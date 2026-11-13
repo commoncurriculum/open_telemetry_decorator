@@ -69,7 +69,7 @@ defmodule OpenTelemetryDecorator do
         result
       rescue
         e ->
-          O11y.record_exception(e)
+          unquote(__MODULE__).raised(e)
           reraise e, __STACKTRACE__
       catch
         kind, reason ->
@@ -166,12 +166,19 @@ defmodule OpenTelemetryDecorator do
         exit({:shutdown, reason})
 
       {:exit, reason} ->
+        Tracer.set_attribute("error.type", :_OTHER)
         O11y.set_error("exited: #{inspect(reason)}")
         :erlang.raise(:exit, reason, stacktrace)
 
       {:throw, thrown} ->
+        Tracer.set_attribute("error.type", :_OTHER)
         O11y.set_error("uncaught: #{inspect(thrown)}")
         :erlang.raise(:throw, thrown, stacktrace)
     end
+  end
+
+  def raised(exception) do
+    O11y.record_exception(exception)
+    Tracer.set_attribute("error.type", inspect(exception.__struct__))
   end
 end
