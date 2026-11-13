@@ -249,6 +249,7 @@ defmodule OpenTelemetryDecoratorTest do
           assert Exception.format(:error, e, __STACKTRACE__) =~ "File.read!/1"
           span = assert_span("Example.with_exception")
           assert [%{name: :exception}] = span.events
+          assert %{"error.type" => "File.Error"} = span.attributes
       end
     end
 
@@ -261,6 +262,7 @@ defmodule OpenTelemetryDecoratorTest do
           span = assert_span("Example.with_exit")
           assert span.status.code == :error
           assert span.status.message == "exited: %{bad: :times}"
+          assert %{"error.type" => :_OTHER} = span.attributes
       end
     end
 
@@ -344,6 +346,7 @@ defmodule OpenTelemetryDecoratorTest do
           span = assert_span("Example.with_throw")
           assert span.status.code == :error
           assert span.status.message == "uncaught: %{catch: :this}"
+          assert %{"error.type" => :_OTHER} = span.attributes
       end
     end
 
