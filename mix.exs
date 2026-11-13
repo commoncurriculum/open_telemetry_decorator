@@ -45,6 +45,7 @@ defmodule OpenTelemetryDecorator.MixProject do
       {:opentelemetry_exporter, "~> 1.8", only: :test},
       {:opentelemetry_api, "~> 1.4"},
       {:opentelemetry, "~> 1.5", only: :test, runtime: false},
+      {:opentelemetry_process_propagator, "~> 0.3"},
       {:o11y, "~> 0.2"}
     ]
   end

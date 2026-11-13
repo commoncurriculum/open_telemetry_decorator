@@ -1,5 +1,10 @@
 # OpenTelemetryDecorator
 
+## Unreleased
+
+- A decorated function called outside any span, such as in a `Task`, joins the trace of the nearest process in its `$callers` that has one
+- `@decorate span()` decorates a function with a span named after it (`MyApp.Worker.do_work/2`)
+
 ## v1.5.10
 
 - Fixes compilation warnings in Elixir 1.18 (🙏 @vrcca)
