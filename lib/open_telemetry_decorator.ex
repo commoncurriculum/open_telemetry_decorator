@@ -9,9 +9,10 @@ defmodule OpenTelemetryDecorator do
              # compensate for anchor id differences between ExDoc and GitHub
              |> (&Regex.replace(~r/\(\#\K(?=[a-z][a-z0-9-]+\))/, &1, "module-")).()
 
-  use Decorator.Define, with_span: 1, with_span: 2, trace: 1, trace: 2
+  use Decorator.Define, span: 0, with_span: 1, with_span: 2, trace: 1, trace: 2
 
   alias OpenTelemetryDecorator.Attributes
+  alias OpenTelemetryDecorator.SpanName
   alias OpenTelemetryDecorator.Validator
 
   require OpenTelemetry.Tracer, as: Tracer
@@ -39,7 +40,14 @@ defmodule OpenTelemetryDecorator do
     end
   end
   ```
+
+  `@decorate span()` is `with_span` with the span named after the function: `MyApp.Worker.do_work/2`.
+
+  A function called outside any span, such as in a `Task` started from a traced process, joins the
+  trace of the nearest process in its `$callers` that has one.
   """
+  def span(body, context), do: with_span(SpanName.from_context(context), [], body, context)
+
   def with_span(span_name, opts \\ [], body, context) do
     include = Keyword.get(opts, :include, [])
     Validator.validate_args(span_name, include)
@@ -67,7 +75,7 @@ defmodule OpenTelemetryDecorator do
         kind, reason ->
           unquote(__MODULE__).failed(kind, reason, data, __STACKTRACE__)
       after
-        O11y.end_span(data.parent_span)
+        unquote(__MODULE__).finish(data)
       end
     end
   rescue
@@ -83,6 +91,7 @@ defmodule OpenTelemetryDecorator do
       |> Map.take(dynamic_links)
       |> Map.values()
 
+    callers_token = attach_callers_ctx()
     parent_span = O11y.start_span(span_name, links: links)
     new_span = Tracer.current_span_ctx()
 
@@ -101,8 +110,25 @@ defmodule OpenTelemetryDecorator do
       input_params: input_params,
       include: include,
       prefix: prefix,
-      parent_span: parent_span
+      parent_span: parent_span,
+      callers_token: callers_token
     }
+  end
+
+  def finish(%{parent_span: parent_span, callers_token: callers_token}) do
+    O11y.end_span(parent_span)
+    if callers_token, do: OpenTelemetry.Ctx.detach(callers_token)
+  end
+
+  defp attach_callers_ctx do
+    with :undefined <- Tracer.current_span_ctx(),
+         callers when callers != [] <- Process.get(:"$callers", []),
+         ctx when ctx != :undefined <-
+           OpentelemetryProcessPropagator.fetch_parent_ctx(length(callers), :"$callers") do
+      OpenTelemetry.Ctx.attach(ctx)
+    else
+      _ -> nil
+    end
   end
 
   def done(result, binding, %{

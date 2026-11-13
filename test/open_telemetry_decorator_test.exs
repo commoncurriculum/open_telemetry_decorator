@@ -422,5 +422,42 @@ defmodule OpenTelemetryDecoratorTest do
 
       assert parent_span.span_id == child_span.parent_span_id
     end
+
+    test "span() names the span after the function" do
+      defmodule UnnamedExample do
+        use OpenTelemetryDecorator
+
+        @decorate span()
+        def work(x), do: x
+      end
+
+      UnnamedExample.work(1)
+
+      assert_span("OpenTelemetryDecoratorTest.UnnamedExample.work/1")
+    end
+
+    test "a Task's span joins the trace of the process that started it" do
+      Tracer.with_span "caller" do
+        Task.async(fn ->
+          Example.step(1)
+          Tracer.current_span_ctx()
+        end)
+        |> Task.await()
+        |> then(&assert(&1 == :undefined))
+      end
+
+      step_span = assert_span("Example.step")
+      caller_span = assert_span("caller")
+
+      assert step_span.trace_id == caller_span.trace_id
+      assert step_span.parent_span_id == caller_span.span_id
+    end
+
+    test "a Task whose callers have no trace starts a new one" do
+      Task.async(fn -> Example.step(1) end) |> Task.await()
+
+      step_span = assert_span("Example.step")
+      assert step_span.parent_span_id == :undefined
+    end
   end
 end
