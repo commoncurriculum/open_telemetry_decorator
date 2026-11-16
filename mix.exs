@@ -46,7 +46,7 @@ defmodule OpenTelemetryDecorator.MixProject do
       {:opentelemetry_api, "~> 1.4"},
       {:opentelemetry, "~> 1.5", only: :test, runtime: false},
       {:opentelemetry_process_propagator, "~> 0.3"},
-      {:o11y, "~> 0.2"}
+      {:o11y, github: "commoncurriculum/o11y", ref: "e165b44885aab42c69969210f0e1f296d1cc5145"}
     ]
   end
 
