@@ -3,7 +3,7 @@
 ## Unreleased
 
 - A decorated function called outside any span, such as in a `Task`, joins the trace of the nearest process in its `$callers` that has one
-- `@decorate span()` decorates a function with a span named after it (`MyApp.Worker.do_work/2`)
+- `@decorate span()` decorates a function with a span named after it, without arity (`MyApp.Worker.do_work`), the form OpenTelemetry uses for `code.function.name`
 - A failed span gets `error.type`: the exception module when the function raises, `_OTHER` when it throws or exits abnormally
 
 ## v1.5.10

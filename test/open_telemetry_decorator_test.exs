@@ -436,7 +436,7 @@ defmodule OpenTelemetryDecoratorTest do
 
       UnnamedExample.work(1)
 
-      assert_span("OpenTelemetryDecoratorTest.UnnamedExample.work/1")
+      assert_span("OpenTelemetryDecoratorTest.UnnamedExample.work")
     end
 
     test "a Task's span joins the trace of the process that started it" do
